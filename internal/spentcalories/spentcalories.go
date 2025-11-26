@@ -1,6 +1,7 @@
 package spentcalories
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -23,17 +24,17 @@ func parseTraining(data string) (int, string, time.Duration, error) {
 	}
 	steps, err := strconv.Atoi(sliceData[0])
 	if err != nil {
-		return 0, "", 0, fmt.Errorf("number %s conversion error: %w", sliceData[0], err)
+		return 0, "", 0, fmt.Errorf("number conversion error: (%w)", err)
 	}
 	if steps <= 0 {
 		return 0, "", 0, fmt.Errorf("the number of steps %d must not be negative", steps)
 	}
-	duration, er := time.ParseDuration(sliceData[2])
-	if er != nil {
-		return 0, "", 0, fmt.Errorf("error converting string %s: %w", sliceData[2], er)
+	duration, err := time.ParseDuration(sliceData[2])
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("error converting string: (%w)", err)
 	}
 	if duration <= 0 {
-		return 0, "", 0, fmt.Errorf("duration cannot be less than or equal to 0")
+		return 0, "", 0, errors.New("duration cannot be less than or equal to 0")
 	}
 	return steps, sliceData[1], duration, nil
 }
@@ -75,7 +76,7 @@ func TrainingInfo(data string, weight, height float64) (string, error) {
 		}
 		return fmt.Sprintf("Тип тренировки: %s\nДлительность: %.2f ч.\nДистанция: %.2f км.\nСкорость: %.2f км/ч\nСожгли калорий: %.2f\n", activity, duration.Hours(), distanceRun, speedRun, caloriesRun), nil
 	}
-	return "", fmt.Errorf("неизвестный тип тренировки")
+	return "", errors.New("неизвестный тип тренировки")
 }
 
 // RunningSpentCalories возвращает  количество калорий, потраченных при беге
@@ -90,10 +91,10 @@ func RunningSpentCalories(steps int, weight, height float64, duration time.Durat
 		return 0, fmt.Errorf("error: steps %d cannot be negative or equal to zero", steps)
 	}
 	if duration <= 0 {
-		return 0, fmt.Errorf("error: duration cannot be negative or equal to zero")
+		return 0, errors.New("error: duration cannot be negative or equal to zero")
 	}
 	speed := meanSpeed(steps, height, duration)
-	return (weight * duration.Minutes() * speed / 60), nil
+	return (weight * duration.Minutes() * speed / minInH), nil
 }
 
 // WalkingSpentCalories возвращает количество калорий, потраченных при ходьбе
@@ -108,8 +109,8 @@ func WalkingSpentCalories(steps int, weight, height float64, duration time.Durat
 		return 0, fmt.Errorf("error: steps %d cannot be negative or equal to zero", steps)
 	}
 	if duration <= 0 {
-		return 0, fmt.Errorf("error: duration cannot be negative or equal to zero")
+		return 0, errors.New("error: duration cannot be negative or equal to zero")
 	}
 	speed := meanSpeed(steps, height, duration)
-	return (weight * duration.Minutes() * speed / 60) * walkingCaloriesCoefficient, nil
+	return (weight * duration.Minutes() * speed / minInH) * walkingCaloriesCoefficient, nil
 }
